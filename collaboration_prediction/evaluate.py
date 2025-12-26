@@ -37,6 +37,7 @@ def evaluate_model(cfg: DictConfig, checkpoint_path: str) -> Optional[Dict[str, 
         add_self_loops=cfg.data.preprocessing.add_self_loops,
         min_degree_clamp=cfg.data.preprocessing.negative_sampling.min_degree_clamp,
         structural_features_cfg=cfg.data.preprocessing.get("structural_features"),
+        dvc_repo_path=cfg.data.get("dvc_repo_path"),
     )
 
     features_dim = graph_data["node_features"].shape[1]

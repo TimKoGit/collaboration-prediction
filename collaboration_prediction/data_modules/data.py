@@ -37,6 +37,7 @@ def load_dataset(
     add_self_loops: bool = True,
     min_degree_clamp: float = 1.0,
     structural_features_cfg: Optional[dict[str, Any]] = None,
+    dvc_repo_path: Optional[str] = None,
 ) -> dict[str, Any]:
     """Load OGB link prediction dataset and prepare graph data.
 
@@ -47,6 +48,7 @@ def load_dataset(
         add_self_loops: Whether to add self-loops
         min_degree_clamp: Minimum degree for clamping
         structural_features_cfg: Optional configuration for structural features
+        dvc_repo_path: Optional path to external DVC repository
 
     Returns:
         Dictionary containing graph data and edge splits with keys:
@@ -101,30 +103,35 @@ def load_dataset(
         cfg_hash = hashlib.md5(cfg_str.encode()).hexdigest()
         cache_path = processed_dir / f"structural_features_{cfg_hash}.pt"
 
-        project_root = Path.cwd()
-        try:
-            current = Path(root).resolve()
-            while current != current.parent:
-                if (current / ".dvc").exists() or (current / "pyproject.toml").exists():
-                    project_root = current
-                    break
-                current = current.parent
-        except Exception:
-            pass
+        if dvc_repo_path:
+            dvc_root = Path(dvc_repo_path).resolve()
+            try:
+                cache_path_rel = cache_path.resolve().relative_to(dvc_root)
+            except ValueError:
+                logger.warning(
+                    f"Cache path {cache_path} is not under DVC root {dvc_root}."
+                    "DVC tracking disabled for this file."
+                )
+                dvc_root = None
+                cache_path_rel = None
+        else:
+            dvc_root = None
+            cache_path_rel = None
 
-        if not cache_path.exists():
+        if dvc_root and cache_path_rel and not cache_path.exists():
             dvc_file = cache_path.with_suffix(".pt.dvc")
             if dvc_file.exists():
                 logger.info(
                     f"Found DVC tracking for structural features, attempting to pull: {cache_path}"
                 )
-                dvc_pull(str(cache_path), root_dir=project_root)
+                dvc_pull(str(cache_path_rel), dvc_root=dvc_root)
 
         if cache_path.exists():
             logger.info(f"Loading structural features from cache: {cache_path}")
             cached_features = torch.load(cache_path, weights_only=False)
             node_features = cached_features
-            dvc_add(str(cache_path), root_dir=project_root)
+            if dvc_root and cache_path_rel:
+                dvc_add(str(cache_path_rel), dvc_root=dvc_root)
         else:
             logger.info("Computing structural features (not found in cache)...")
             dw_cfg = structural_features_cfg.get("deepwalk", {})
@@ -162,7 +169,8 @@ def load_dataset(
             logger.info(f"Saving computed structural features to cache: {cache_path}")
             torch.save(node_features, cache_path)
 
-            dvc_add(str(cache_path), root_dir=project_root)
+            if dvc_root and cache_path_rel:
+                dvc_add(str(cache_path_rel), dvc_root=dvc_root)
 
     if add_self_loops:
         self_loops = torch.arange(num_nodes, dtype=torch.long).unsqueeze(0).repeat(2, 1)

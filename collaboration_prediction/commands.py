@@ -17,7 +17,7 @@ from collaboration_prediction.inference_modules.inference import prepare_triton_
 from collaboration_prediction.inference_modules.inference_server import InferenceServer
 from collaboration_prediction.model.lightning_module import LinkPredictionLightningModule
 from collaboration_prediction.train import train_model
-from collaboration_prediction.utils.dvc import ensure_data, ensure_dvc_repo
+from collaboration_prediction.utils.dvc import ensure_data, init_external_data
 
 
 @click.group()
@@ -25,6 +25,66 @@ from collaboration_prediction.utils.dvc import ensure_data, ensure_dvc_repo
 def cli():
     """Collaboration Prediction - Link prediction pipeline for scientist collaborations."""
     pass
+
+
+@cli.command()
+@click.option(
+    "--config-path",
+    default="configs",
+    help="Path to Hydra configuration directory",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--config-name",
+    default="config",
+    help="Name of the configuration file (without .yaml)",
+)
+@click.option(
+    "--force-download",
+    is_flag=True,
+    help="Force re-download of data even if it exists",
+)
+@click.argument("overrides", nargs=-1)
+def init_data(config_path: str, config_name: str, force_download: bool, overrides: tuple):
+    """Initialize external DVC repo and upload data.
+
+    Example:
+        collab-pred init-data
+        collab-pred init-data --force-download
+    """
+    overrides_list = list(overrides)
+    config_path_abs = os.path.abspath(config_path)
+
+    with hydra.initialize_config_dir(config_dir=config_path_abs, version_base=None):
+        cfg = hydra.compose(config_name=config_name, overrides=overrides_list)
+
+        dvc_repo_path = cfg.data.dvc_repo_path
+
+        dvc_root = Path(dvc_repo_path).resolve()
+        data_root_abs = Path(cfg.data.data_root).resolve()
+
+        try:
+            data_path_rel = data_root_abs.relative_to(dvc_root)
+        except ValueError:
+            click.echo(
+                f"Error: data_root ({data_root_abs}) must be inside dvc_repo_path ({dvc_root})",
+                err=True,
+            )
+            raise click.Abort()
+
+        dataset_name = cfg.data.dataset_name
+
+        click.echo(f"Initializing DVC repo at {dvc_root}...")
+        if init_external_data(
+            dvc_repo_path=str(dvc_root),
+            data_path=str(data_path_rel),
+            dataset_name=dataset_name,
+            force_download=force_download,
+        ):
+            click.echo("✓ Data initialized and added to DVC successfully")
+        else:
+            click.echo("❌ Failed to initialize data", err=True)
+            raise click.Abort()
 
 
 @cli.command()
@@ -58,13 +118,9 @@ def train(config_path: str, config_name: str, overrides: tuple):
     with hydra.initialize_config_dir(config_dir=config_path_abs, version_base=None):
         cfg = hydra.compose(config_name=config_name, overrides=overrides_list)
 
-        project_root = Path.cwd()
-        ensure_dvc_repo(project_root)
-
         data_path = cfg.data.data_root
         dataset_name = cfg.data.dataset_name
-        if not ensure_data(data_path, dataset_name, project_root, download_if_missing=True):
-            click.echo(f"Error: Failed to obtain data at {data_path}", err=True)
+        if not ensure_data(data_path, dataset_name):
             raise click.Abort()
 
         train_model(cfg)
@@ -105,13 +161,9 @@ def evaluate(checkpoint: str, config_path: str, config_name: str, overrides: tup
     with hydra.initialize_config_dir(config_dir=config_path_abs, version_base=None):
         cfg = hydra.compose(config_name=config_name, overrides=overrides_list)
 
-        project_root = Path.cwd()
-        ensure_dvc_repo(project_root)
-
         data_path = cfg.data.data_root
         dataset_name = cfg.data.dataset_name
-        if not ensure_data(data_path, dataset_name, project_root, download_if_missing=True):
-            click.echo(f"Error: Failed to obtain data at {data_path}", err=True)
+        if not ensure_data(data_path, dataset_name):
             raise click.Abort()
 
         results = evaluate_model(cfg, checkpoint)
@@ -160,13 +212,9 @@ def export_onnx(checkpoint: str, output: str, config_path: str, config_name: str
     with hydra.initialize_config_dir(config_dir=config_path_abs, version_base=None):
         cfg = hydra.compose(config_name=config_name, overrides=overrides_list)
 
-        project_root = Path.cwd()
-        ensure_dvc_repo(project_root)
-
         data_path = cfg.data.data_root
         dataset_name = cfg.data.dataset_name
-        if not ensure_data(data_path, dataset_name, project_root, download_if_missing=True):
-            click.echo(f"Error: Failed to obtain data at {data_path}", err=True)
+        if not ensure_data(data_path, dataset_name):
             raise click.Abort()
 
         click.echo(f"Loading checkpoint from {checkpoint}...")
@@ -186,6 +234,7 @@ def export_onnx(checkpoint: str, output: str, config_path: str, config_name: str
             data_root=cfg.data.data_root,
             dataset_name=cfg.data.dataset_name,
             structural_features_cfg=cfg.data.preprocessing.get("structural_features"),
+            dvc_repo_path=cfg.data.get("dvc_repo_path"),
         )
 
         click.echo(f"Exporting model to ONNX format: {output}...")
@@ -270,6 +319,7 @@ def verify_onnx(
         add_self_loops=add_self_loops,
         min_degree_clamp=min_degree_clamp,
         structural_features_cfg=cfg.data.preprocessing.get("structural_features"),
+        dvc_repo_path=cfg.data.get("dvc_repo_path"),
     )
 
     verification_cfg = cfg.export.onnx.get("verification", {})
@@ -438,6 +488,7 @@ def serve(
             add_self_loops=add_self_loops,
             min_degree_clamp=min_degree_clamp,
             structural_features_cfg=cfg.data.preprocessing.get("structural_features"),
+            dvc_repo_path=cfg.data.get("dvc_repo_path"),
         )
 
         click.echo(f"\n✓ Server starting at http://{host}:{port}")

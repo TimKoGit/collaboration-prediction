@@ -4,12 +4,12 @@ from collaboration_prediction.utils.dvc import (
     dvc_add,
     dvc_pull,
     ensure_data,
-    ensure_dvc_repo,
+    init_external_data,
 )
 
 __all__ = [
     "ensure_data",
-    "ensure_dvc_repo",
+    "init_external_data",
     "dvc_add",
     "dvc_pull",
 ]

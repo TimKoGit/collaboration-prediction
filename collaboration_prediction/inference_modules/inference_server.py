@@ -57,6 +57,7 @@ class InferenceServer:
         add_self_loops: bool = True,
         min_degree_clamp: float = 1.0,
         structural_features_cfg: Optional[dict] = None,
+        dvc_repo_path: Optional[str] = None,
     ):
         """Initialize inference server.
 
@@ -69,6 +70,7 @@ class InferenceServer:
             add_self_loops: Whether to add self-loops
             min_degree_clamp: Minimum degree for clamping
             structural_features_cfg: Configuration for structural features
+            dvc_repo_path: Path to external DVC repository
         """
         if not FASTAPI_AVAILABLE:
             raise ImportError(
@@ -83,8 +85,11 @@ class InferenceServer:
 
         self.client = TritonInferenceClient(url=triton_url, model_name=triton_model_name)
 
-        logger.info("Ensuring graph data availability via DVC...")
-        ensure_data(data_path=data_root, dataset_name=dataset_name)
+        logger.info("Checking graph data availability...")
+        if not ensure_data(data_path=data_root, dataset_name=dataset_name):
+            raise RuntimeError(
+                f"Data not available at {data_root}. Please run 'collab-pred init-data' first."
+            )
 
         logger.info("Loading graph data...")
 
@@ -95,6 +100,7 @@ class InferenceServer:
             add_self_loops=add_self_loops,
             min_degree_clamp=min_degree_clamp,
             structural_features_cfg=structural_features_cfg,
+            dvc_repo_path=dvc_repo_path,
         )
 
         self.node_features = graph_data["node_features"].numpy().astype(np.float32)

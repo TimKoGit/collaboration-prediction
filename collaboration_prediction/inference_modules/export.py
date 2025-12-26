@@ -306,6 +306,7 @@ def load_example_data_for_export(
     add_self_loops: bool = True,
     min_degree_clamp: int = 1,
     structural_features_cfg: Optional[Dict] = None,
+    dvc_repo_path: Optional[str] = None,
 ) -> Dict[str, torch.Tensor]:
     """Load example data for model export.
 
@@ -320,6 +321,7 @@ def load_example_data_for_export(
         add_self_loops: Whether to add self-loops
         min_degree_clamp: Minimum degree for clamping
         structural_features_cfg: Configuration for structural features
+        dvc_repo_path: Path to external DVC repository
 
     Returns:
         Dictionary with example inputs for export
@@ -331,6 +333,7 @@ def load_example_data_for_export(
         add_self_loops=add_self_loops,
         min_degree_clamp=min_degree_clamp,
         structural_features_cfg=structural_features_cfg,
+        dvc_repo_path=dvc_repo_path,
     )
 
     edge_index = graph_data["edge_index"]

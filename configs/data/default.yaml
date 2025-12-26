@@ -1,7 +1,8 @@
 # Data loading and preprocessing configuration
 
 dataset_name: ogbl-collab
-data_root: ./data
+data_root: ${data.dvc_repo_path}/data
+dvc_repo_path: /home/timko/Desktop/dvc_repo
 num_workers: 4
 
 preprocessing:
