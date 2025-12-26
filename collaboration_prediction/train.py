@@ -490,6 +490,7 @@ def train_model(cfg: DictConfig) -> None:
                         output_path=onnx_path,
                         example_data=example_data,
                         opset_version=cfg.export.onnx.opset_version,
+                        dynamic_axes=cfg.export.onnx.get("dynamic_axes", None),
                     )
                     logger.info(f"Model exported to ONNX: {onnx_path}")
                 else:

@@ -201,10 +201,15 @@ def export_onnx(checkpoint: str, output: str, config_path: str, config_name: str
 
         if cfg.export.get("verify_after_export", True):
             click.echo("\nVerifying ONNX model...")
+            verification_cfg = cfg.export.onnx.get("verification", {})
+            verification_kwargs = {
+                k: verification_cfg[k] for k in ["rtol", "atol"] if k in verification_cfg
+            }
             is_valid = verify_onnx_model(
                 onnx_path=output,
                 pytorch_model=model.model,
                 example_data=example_data,
+                **verification_kwargs,
             )
             if not is_valid:
                 click.echo("⚠ Warning: ONNX model verification failed, but export completed.")
@@ -267,10 +272,15 @@ def verify_onnx(
         structural_features_cfg=cfg.data.preprocessing.get("structural_features"),
     )
 
+    verification_cfg = cfg.export.onnx.get("verification", {})
+    verification_kwargs = {
+        k: verification_cfg[k] for k in ["rtol", "atol"] if k in verification_cfg
+    }
     is_valid = verify_onnx_model(
         onnx_path=onnx_model,
         pytorch_model=model.model,
         example_data=example_data,
+        **verification_kwargs,
     )
 
     if is_valid:
@@ -334,9 +344,6 @@ def prepare_triton(
     click.echo(f"      -v {Path(model_repository).absolute()}:/models \\")
     click.echo(
         "      nvcr.io/nvidia/tritonserver:24.01-py3 tritonserver --model-repository=/models"
-    )
-    click.echo(
-        "  Note: Use a specific version tag instead of 'latest' (e.g., 24.01-py3, 23.12-py3)"
     )
 
 

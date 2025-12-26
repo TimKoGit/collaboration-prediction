@@ -228,7 +228,7 @@ collab-pred train --config-name my_config training.batch_size=64
 **Запуск оценки:**
 
 ```bash
-collab-pred evaluate --checkpoint lightning_logs/version_0/checkpoints/best.ckpt
+collab-pred evaluate --checkpoint lightning_logs/checkpoints/best.ckpt
 ```
 
 **С переопределением параметров конфигурации:**
@@ -282,7 +282,7 @@ collab-pred export-onnx \
 ```bash
 collab-pred verify-onnx \
   --onnx-model models/link_prediction.onnx \
-  --checkpoint lightning_logs/version_0/checkpoints/best.ckpt
+  --checkpoint lightning_logs/checkpoints/best.ckpt
 ```
 
 Команда:

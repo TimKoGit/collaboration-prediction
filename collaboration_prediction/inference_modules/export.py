@@ -220,6 +220,7 @@ def export_to_onnx(
     output_path: str,
     example_data: Dict[str, torch.Tensor],
     opset_version: int = 14,
+    dynamic_axes: Optional[Dict[str, Dict[int, str]]] = None,
 ) -> Path:
     """Export PyTorch model to ONNX format.
 
@@ -281,6 +282,7 @@ def export_to_onnx(
         opset_version=opset_version,
         do_constant_folding=True,
         verbose=False,
+        dynamic_axes=dynamic_axes,
         dynamo=False,  # Use legacy exporter for sparse tensor support
     )
 

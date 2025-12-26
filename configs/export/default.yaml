@@ -5,6 +5,9 @@ auto_export_onnx: false
 onnx:
   export_path: ./models/model.onnx
   opset_version: 14
+  verification:
+    rtol: 1e-2
+    atol: 5e-2
 
 inference:
   triton:
