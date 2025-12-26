@@ -5,6 +5,8 @@ from pathlib import Path
 
 from ogb.linkproppred import PygLinkPropPredDataset
 
+from collaboration_prediction.utils.torch_utils import patch_torch_load
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +44,8 @@ def download_data(
     logger.info(f"Downloading dataset '{dataset_name}' to {data_root_path}...")
 
     try:
-        PygLinkPropPredDataset(name=dataset_name, root=str(data_root_path))
+        with patch_torch_load():
+            PygLinkPropPredDataset(name=dataset_name, root=str(data_root_path))
         logger.info("Dataset object created successfully")
 
         for path_to_check in [dataset_path_alt, dataset_path]:

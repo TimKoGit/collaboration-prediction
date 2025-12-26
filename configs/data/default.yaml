@@ -17,7 +17,7 @@ preprocessing:
       walk_length: 40
       window_size: 5
       negative_size: 1
-      epochs: 1
+      epochs: 3
       batch_size: 4096
       num_workers: 4
       lr: 0.001

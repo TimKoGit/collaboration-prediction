@@ -247,5 +247,4 @@ node_modules/
 mlruns/
 
 /.cursor/
-
-/plots/
+/data

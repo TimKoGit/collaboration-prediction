@@ -1,12 +1,10 @@
 """Data loading and preprocessing for link prediction."""
 
-import contextlib
-import functools
 import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -16,54 +14,20 @@ from omegaconf import OmegaConf
 
 from collaboration_prediction.data_modules.features import compute_anchor_encodings, train_deepwalk
 from collaboration_prediction.utils.dvc import dvc_add, dvc_pull
+from collaboration_prediction.utils.torch_utils import patch_torch_load
 
 logger = logging.getLogger(__name__)
 
 # Add numpy to safe globals for torch.load in PyTorch 2.6+
 if hasattr(torch.serialization, "add_safe_globals"):
-    torch.serialization.add_safe_globals([np.core.multiarray._reconstruct])
+    import torch_geometric
 
-# Store original torch.load to avoid global patching
-_original_torch_load = torch.load
-
-
-@functools.wraps(_original_torch_load)
-def _patched_torch_load(*args, **kwargs):
-    """Patched torch.load that defaults to weights_only=False for OGB datasets.
-
-    This function wraps the original torch.load and sets weights_only=False
-    if not explicitly provided. This is necessary because PyTorch 2.6+ changed
-    the default to weights_only=True, but OGB datasets contain PyG and NumPy
-    objects that aren't in the safe globals list.
-
-    Args:
-        *args: Positional arguments passed to torch.load
-        **kwargs: Keyword arguments passed to torch.load
-
-    Returns:
-        Loaded object from torch.load
-    """
-    if "weights_only" not in kwargs:
-        kwargs["weights_only"] = False
-    return _original_torch_load(*args, **kwargs)
-
-
-@contextlib.contextmanager
-def _patch_torch_load() -> Generator[None, None, None]:
-    """Context manager to temporarily patch torch.load for OGB dataset loading.
-
-    This is needed because PyTorch 2.6+ changed the default to weights_only=True,
-    but OGB datasets contain PyG and NumPy objects that aren't in the safe globals list.
-    Since OGB datasets are from a trusted source, we can safely use weights_only=False.
-
-    Yields:
-        None: Context manager that patches torch.load during execution
-    """
-    torch.load = _patched_torch_load
-    try:
-        yield
-    finally:
-        torch.load = _original_torch_load
+    torch.serialization.add_safe_globals(
+        [
+            np.core.multiarray._reconstruct,
+            torch_geometric.data.data.DataEdgeAttr,
+        ]
+    )
 
 
 def load_dataset(
@@ -100,7 +64,7 @@ def load_dataset(
         RuntimeError: If dataset loading fails
     """
     try:
-        with _patch_torch_load():
+        with patch_torch_load():
             dataset = PygLinkPropPredDataset(name=name, root=root)
             graph_pyg = dataset[0]
             edge_split = dataset.get_edge_split()
