@@ -1,0 +1,9 @@
+# Main configuration file for link prediction pipeline
+
+defaults:
+  - model: default
+  - training: default
+  - data: default
+  - trainer: default
+  - logging: default
+  - export: default

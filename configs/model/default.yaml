@@ -1,0 +1,23 @@
+# Model architecture configuration
+
+features_dim: 128
+hidden_dim: 256
+num_layers: 3
+dropout: 0.2
+
+node_encoder:
+  use_layer_norm: true
+  activation: relu
+
+pair_encoder:
+  output_multiplier: 3
+
+link_predictor:
+  reduction_factor: 2
+
+sage_conv:
+  min_degree: 1.0
+
+message_passing:
+  use_residual: true
+  activation: relu

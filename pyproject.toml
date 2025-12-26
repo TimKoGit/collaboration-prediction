@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "collaboration-prediction"
+version = "0.1.0"
+description = "A full pipeline of a model, predicting collaborations between scientists"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.3.1",
+    "dvc>=3.65.0",
+    "hydra-core>=1.3.2",
+    "matplotlib>=3.10.8",
+    "mlflow>=3.8.0",
+    "numpy>=2.4.0",
+    "ogb>=1.3.6",
+    "pytorch-lightning>=2.6.0",
+    "scikit-learn>=1.8.0",
+    "torch>=2.9.1",
+    "torch-geometric>=2.7.0",
+]
+
+[project.optional-dependencies]
+export = [
+    "onnx>=1.20.0",
+    "onnxruntime>=1.23.2",
+    "onnxscript>=0.1.0",
+]
+inference = [
+    "fastapi>=0.127.0",
+    "pydantic>=2.12.5",
+    "tritonclient[http]>=2.64.0",
+    "uvicorn[standard]>=0.40.0",
+]
+
+[project.scripts]
+collab-pred = "collaboration_prediction.commands:cli"
+
+[dependency-groups]
+dev = [
+    "black>=25.12.0",
+    "flake8>=7.3.0",
+    "flake8-pyproject>=1.2.3",
+    "flake8-bugbear>=25.11.29",
+    "flake8-docstrings>=1.7.0",
+    "isort>=7.0.0",
+    "pre-commit>=4.5.1",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py313']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+known_first_party = ["collaboration_prediction"]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "build",
+    "dist",
+]

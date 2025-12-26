@@ -1,0 +1,27 @@
+# Data loading and preprocessing configuration
+
+dataset_name: ogbl-collab
+data_root: ./data
+num_workers: 4
+
+preprocessing:
+  make_undirected: true
+  add_self_loops: true
+  negative_sampling:
+    oversample_factor: 1.1
+    min_degree_clamp: 1.0
+  structural_features:
+    deepwalk:
+      enabled: true
+      embedding_dim: 128
+      walk_length: 40
+      window_size: 5
+      negative_size: 1
+      epochs: 1
+      batch_size: 4096
+      num_workers: 4
+      lr: 0.001
+    anchor_encodings:
+      enabled: true
+      num_anchor_nodes: 32
+      num_unique_values: 16

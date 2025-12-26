@@ -1,0 +1,29 @@
+# Logging configuration
+
+name: link_prediction
+version: null # null = auto version
+
+mlflow:
+  tracking_uri: http://127.0.0.1:8080
+  experiment_name: collaboration_prediction
+  run_name: null # null = auto-generated name
+  log_model: false
+
+plots_dir: plots
+
+plotting:
+  single_plot_size: [10, 6]
+  combined_plot_size: [16, 6]
+  dpi: 300
+  linewidth: 2
+  grid_alpha: 0.3
+  label_fontsize: 12
+  title_fontsize: 14
+  legend_fontsize: 11
+  colors:
+    loss: blue
+    hits: green
+    auroc: red
+  markers:
+    hits: o
+    auroc: s

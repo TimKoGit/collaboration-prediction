@@ -1,0 +1,17 @@
+# Training hyperparameters
+
+learning_rate: 0.001
+batch_size: 1024
+num_epochs: 2
+factor_negative_edges: 1
+
+evaluation:
+  hits_k: 50
+  auroc_default: 0.5
+  metric_precision: 4
+
+optimizer:
+  name: adam
+
+loss:
+  name: bce_with_logits

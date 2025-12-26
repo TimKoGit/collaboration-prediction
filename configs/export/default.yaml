@@ -1,0 +1,11 @@
+# Model export configuration (ONNX, etc.)
+
+auto_export_onnx: false
+
+onnx:
+  export_path: ./models/model.onnx
+  opset_version: 14
+
+inference:
+  triton:
+    model_repository: ./models/triton_models
