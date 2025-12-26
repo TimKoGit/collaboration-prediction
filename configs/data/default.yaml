@@ -2,7 +2,7 @@
 
 dataset_name: ogbl-collab
 data_root: ${data.dvc_repo_path}/data
-dvc_repo_path: /home/timko/Desktop/dvc_repo
+dvc_repo_path: ./external_dvc_repo
 num_workers: 4
 
 preprocessing:

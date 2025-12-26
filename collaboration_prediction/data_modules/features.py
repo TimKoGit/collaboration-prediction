@@ -7,6 +7,7 @@ from collections import deque
 from typing import List, Optional, Tuple
 
 import numpy as np
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -172,6 +173,60 @@ def generate_random_walks(
     return walks.tolist()
 
 
+class DeepWalkLightningModule(pl.LightningModule):
+    """PyTorch Lightning module for DeepWalk training."""
+
+    def __init__(self, num_nodes: int, embedding_dim: int, lr: float = 0.001):
+        """Initialize DeepWalkLightningModule.
+
+        Args:
+            num_nodes: Total number of nodes
+            embedding_dim: Embedding dimension
+            lr: Learning rate
+        """
+        super().__init__()
+        self.save_hyperparameters()
+        self.model = SkipGramModel(num_nodes, embedding_dim)
+        self.criterion = nn.BCEWithLogitsLoss()
+        self.lr = lr
+
+    def forward(self, target: torch.Tensor, context: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Args:
+            target: Target node indices
+            context: Context node indices
+
+        Returns:
+            Logits for the target-context pair
+        """
+        return self.model(target, context)
+
+    def training_step(self, batch, batch_idx):
+        """Training step.
+
+        Args:
+            batch: Tuple of (target, context, label)
+            batch_idx: Batch index
+
+        Returns:
+            Training loss
+        """
+        target, context, label = batch
+        logits = self(target, context)
+        loss = self.criterion(logits, label)
+        self.log("train/loss", loss, prog_bar=True)
+        return loss
+
+    def configure_optimizers(self):
+        """Configure optimizer.
+
+        Returns:
+            Adam optimizer
+        """
+        return optim.Adam(self.parameters(), lr=self.lr)
+
+
 def train_deepwalk(
     edge_index: torch.Tensor,
     num_nodes: int,
@@ -185,7 +240,7 @@ def train_deepwalk(
     lr: float = 0.001,
     device: Optional[torch.device] = None,
 ) -> torch.Tensor:
-    """Train DeepWalk embeddings.
+    """Train DeepWalk embeddings using PyTorch Lightning.
 
     Args:
         edge_index: Graph structure
@@ -209,7 +264,7 @@ def train_deepwalk(
     logger.info("Generating random walks for DeepWalk...")
     walks = generate_random_walks(edge_index, num_nodes, walk_length, num_walks_per_node=1)
 
-    logger.info("Training DeepWalk (Skip-gram)...")
+    logger.info("Training DeepWalk (Skip-gram) with PyTorch Lightning...")
     dataset = SkipGramDataset(walks, window_size, num_nodes, negative_size, batch_size)
     dataloader = DataLoader(
         dataset,
@@ -218,25 +273,24 @@ def train_deepwalk(
         pin_memory=(device.type == "cuda"),
     )
 
-    model = SkipGramModel(num_nodes, embedding_dim).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.BCEWithLogitsLoss()
+    lightning_model = DeepWalkLightningModule(num_nodes, embedding_dim, lr=lr)
 
-    model.train()
-    for epoch in range(epochs):
-        total_loss = 0.0
-        pbar = tqdm(dataloader, desc=f"DeepWalk Epoch {epoch+1}", total=len(dataset))
-        for target, context, label in pbar:
-            target, context, label = target.to(device), context.to(device), label.to(device)
-            optimizer.zero_grad()
-            logits = model(target, context)
-            loss = criterion(logits, label)
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-            pbar.set_postfix({"loss": total_loss / (pbar.n + 1)})
+    # Setup trainer
+    accelerator = "gpu" if device.type == "cuda" else "cpu"
+    devices = 1
 
-    return model.embeddings.weight.detach().cpu()
+    trainer = pl.Trainer(
+        max_epochs=epochs,
+        accelerator=accelerator,
+        devices=devices,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(lightning_model, dataloader)
+
+    return lightning_model.model.embeddings.weight.detach().cpu()
 
 
 def compute_anchor_encodings(

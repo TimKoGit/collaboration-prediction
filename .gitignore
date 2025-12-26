@@ -206,24 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# DVC
-# Note: .dvc/ directory itself should be tracked (not ignored)
-# Ignore only cache and temporary files in .dvc directory
-.dvc/cache/
-.dvc/tmp/
-.dvc/config.local
-.dvc/plots/
-.dvc/updater
-.dvcignore
-# Track .dvc files (data tracking files like data.dvc)
-# Note: *.dvc pattern doesn't match .dvc/ directory, only files
-
-# Data (tracked by DVC)
-# Note: data/ directory itself is tracked, but cache is ignored
-data/.dvc/
-# Ignore dataset files (managed by DVC)
-/data/
-
 # PyTorch Lightning
 # Training logs, checkpoints, and MLflow runs
 lightning_logs/
@@ -247,4 +229,3 @@ node_modules/
 mlruns/
 
 /.cursor/
-/data

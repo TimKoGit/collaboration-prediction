@@ -421,13 +421,13 @@ def prepare_triton(
 )
 @click.option(
     "--data-root",
-    default="./data",
+    default=None,
     help="Root directory for dataset",
-    type=click.Path(exists=True),
+    type=click.Path(),
 )
 @click.option(
     "--dataset-name",
-    default="ogbl-collab",
+    default=None,
     help="Name of the dataset",
 )
 @click.option(
